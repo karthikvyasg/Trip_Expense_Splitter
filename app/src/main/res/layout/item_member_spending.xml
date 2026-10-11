@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@drawable/bg_card"
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:layout_marginBottom="8dp"
+    android:elevation="1dp">
+
+    <!-- Member Name with Serial Number -->
+    <TextView
+        android:id="@+id/tvMemberName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#212529" />
+
+    <!-- Currency Prefix -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="₹ "
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="#495057" />
+
+    <!-- Spending Input Field -->
+    <EditText
+        android:id="@+id/etMemberAmount"
+        android:layout_width="140dp"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_input"
+        android:paddingHorizontal="10dp"
+        android:hint="20+15+100"
+        android:textColorHint="#ADB5BD"
+        android:inputType="phone"
+        android:digits="0123456789+."
+        android:textAlignment="viewEnd"
+        android:textSize="14sp"
+        android:textColor="#212529" />
+
+    <!-- Remove Member Button -->
+    <ImageButton
+        android:id="@+id/btnDeleteMember"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_delete"
+        android:tint="#DC3545"
+        android:contentDescription="Delete Member"
+        android:layout_marginStart="4dp" />
+
+</LinearLayout>

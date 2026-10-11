@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#F8F9FA">
+
+    <!-- Top Bar with Back Arrow -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <ImageButton
+            android:id="@+id/btnExpenseBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="Back"
+            android:tint="#212529" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enter Spending"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#212529"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <!-- Optional Trip Title Input -->
+    <EditText
+        android:id="@+id/etTripTitle"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_card"
+        android:paddingHorizontal="12dp"
+        android:hint="Trip Name (e.g. Goa Trip) - optional"
+        android:textColorHint="#888888"
+        android:inputType="textCapWords"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Spending List -->
+    <ListView
+        android:id="@+id/lvSpendingList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="6dp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Calculate Split Button -->
+    <Button
+        android:id="@+id/btnCalculateSplit"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="Calculate Split ->"
+        android:textSize="16sp"
+        android:backgroundTint="#0D6EFD" />
+
+</LinearLayout>

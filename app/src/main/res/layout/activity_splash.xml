@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#0D6EFD"
+    android:padding="24dp">
+
+    <!-- App Icon / Vector Container -->
+    <TextView
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:background="@drawable/bg_card"
+        android:backgroundTint="#FFFFFF"
+        android:gravity="center"
+        android:text="✈️"
+        android:textSize="44sp"
+        android:elevation="6dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Trip Expense Splitter"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginTop="20dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Split group trip expenses fairly and instantly"
+        android:textSize="14sp"
+        android:textColor="#D0E2FF"
+        android:layout_marginTop="6dp" />
+
+    <ProgressBar
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:indeterminateTint="#FFFFFF"
+        android:layout_marginTop="36dp" />
+
+</LinearLayout>
