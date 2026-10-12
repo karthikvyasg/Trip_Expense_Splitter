@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply persisted user theme preference before rendering
         ThemeManager.applySavedTheme(this)
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         DisplayUtils.enableMaxRefreshRate(this)
         setContentView(R.layout.activity_main)
