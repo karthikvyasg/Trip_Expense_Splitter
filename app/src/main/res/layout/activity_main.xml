@@ -13,17 +13,28 @@
         android:background="@color/primary_blue"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="20dp"
+        android:paddingHorizontal="16dp"
         android:paddingVertical="18dp"
         android:elevation="4dp">
 
+        <!-- Back Button (Left) -->
+        <ImageButton
+            android:id="@+id/btnMainBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="?attr/homeAsUpIndicator"
+            android:tint="@android:color/white"
+            android:contentDescription="Back"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Title & Subtitle (Center) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical">
 
-            <!-- ALL CAPS AND BOLD HEADING -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -37,20 +48,21 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Split group trip expenses fairly and instantly"
+                android:text="Split expenses equally (for members who joined all paid activities)"
                 android:textSize="12sp"
                 android:textColor="#D0E2FF"
                 android:layout_marginTop="3dp" />
         </LinearLayout>
 
+        <!-- Menu Button (Right) -->
         <ImageButton
             android:id="@+id/btnMenu"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_sort_by_size"
-            android:tint="#FFFFFF"
-            android:contentDescription="Settings" />
+            android:tint="@android:color/white"
+            android:contentDescription="Menu" />
     </LinearLayout>
 
     <!-- Main Content Area -->
@@ -72,7 +84,7 @@
                 android:layout_width="0dp"
                 android:layout_height="44dp"
                 android:layout_weight="1"
-                android:text="Past Trips"
+                android:text="HISTORY"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:textColor="@color/primary_blue"
                 android:textSize="13sp"
@@ -83,7 +95,7 @@
                 android:layout_width="0dp"
                 android:layout_height="44dp"
                 android:layout_weight="1"
-                android:text="New Trip"
+                android:text="RESET"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:textColor="#DC3545"
                 android:strokeColor="#DC3545"

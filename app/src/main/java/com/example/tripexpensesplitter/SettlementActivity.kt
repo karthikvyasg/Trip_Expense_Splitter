@@ -3,9 +3,11 @@ package com.example.tripexpensesplitter
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
@@ -22,7 +24,9 @@ class SettlementActivity : AppCompatActivity() {
     private lateinit var tripTitle: String
     private var totalAmount: Double = 0.0
     private var memberCount: Int = 0
+    private var isUnequalSplit: Boolean = false
     private var settlements: ArrayList<String> = arrayListOf()
+    private var individualBreakdown: ArrayList<String> = arrayListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,11 +37,18 @@ class SettlementActivity : AppCompatActivity() {
         tripTitle = intent.getStringExtra("TRIP_TITLE") ?: "Trip Expense"
         totalAmount = intent.getDoubleExtra("TOTAL_AMOUNT", 0.0)
         memberCount = intent.getIntExtra("MEMBER_COUNT", 1)
+        isUnequalSplit = intent.getBooleanExtra("IS_UNEQUAL_SPLIT", false)
         settlements = intent.getStringArrayListExtra("SETTLEMENTS") ?: arrayListOf()
+        individualBreakdown = intent.getStringArrayListExtra("INDIVIDUAL_BREAKDOWN") ?: arrayListOf()
+        val unequalItemsJson = intent.getStringExtra("UNEQUAL_ITEMS_JSON") ?: ""
+
+        val savedMembers = intent.getStringArrayListExtra("MEMBERS") ?: arrayListOf()
+        val keys = intent.getStringArrayListExtra("MAP_KEYS") ?: arrayListOf()
+        val values = intent.getStringArrayListExtra("MAP_VALUES") ?: arrayListOf()
 
         val currentDate = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date())
 
-        // Save trip directly into persistent history
+        // Save trip with full unequal metadata for reloading
         val historyManager = TripHistoryManager(this)
         historyManager.saveTrip(
             TripHistoryItem(
@@ -46,14 +57,22 @@ class SettlementActivity : AppCompatActivity() {
                 date = currentDate,
                 totalAmount = totalAmount,
                 memberCount = memberCount,
-                settlements = settlements
+                settlements = settlements,
+                members = savedMembers,
+                mapKeys = keys,
+                mapValues = values,
+                isUnequal = isUnequalSplit,
+                unequalItemsJson = unequalItemsJson
             )
         )
 
         val btnSettlementBack = findViewById<ImageButton>(R.id.btnSettlementBack)
         val tvSettlementTitle = findViewById<TextView>(R.id.tvSettlementTitle)
         val tvFinalTotal = findViewById<TextView>(R.id.tvFinalTotal)
+        val tvFinalPerPersonLabel = findViewById<TextView>(R.id.tvFinalPerPersonLabel)
         val tvFinalPerPerson = findViewById<TextView>(R.id.tvFinalPerPerson)
+        val layoutBreakdownCard = findViewById<LinearLayout>(R.id.layoutIndividualBreakdownCard)
+        val tvBreakdownText = findViewById<TextView>(R.id.tvIndividualBreakdownText)
         val lvSettlements = findViewById<ListView>(R.id.lvSettlements)
         val btnShareText = findViewById<Button>(R.id.btnShareText)
         val btnExportCSV = findViewById<Button>(R.id.btnExportCSV)
@@ -61,8 +80,24 @@ class SettlementActivity : AppCompatActivity() {
 
         tvSettlementTitle.text = tripTitle
         tvFinalTotal.text = "₹%.2f".format(totalAmount)
+
         val perPerson = if (memberCount > 0) totalAmount / memberCount else 0.0
-        tvFinalPerPerson.text = "₹%.2f".format(perPerson)
+
+        if (isUnequalSplit) {
+            tvFinalPerPersonLabel.text = "TOTAL MEMBERS"
+            tvFinalPerPerson.text = "$memberCount Members"
+
+            if (individualBreakdown.isNotEmpty()) {
+                layoutBreakdownCard.visibility = View.VISIBLE
+                tvBreakdownText.text = individualBreakdown.joinToString("\n") { "• $it" }
+            } else {
+                layoutBreakdownCard.visibility = View.GONE
+            }
+        } else {
+            tvFinalPerPersonLabel.text = "PER PERSON"
+            tvFinalPerPerson.text = "₹%.2f".format(perPerson)
+            layoutBreakdownCard.visibility = View.GONE
+        }
 
         val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, settlements)
         lvSettlements.adapter = adapter
@@ -84,8 +119,19 @@ class SettlementActivity : AppCompatActivity() {
         shareText.append("🧾 *Trip Settlement: $tripTitle*\n")
         shareText.append("📅 Date: $currentDate\n")
         shareText.append("💰 Total Spent: ₹%.2f\n".format(totalAmount))
-        shareText.append("👥 Members: $memberCount (₹%.2f/person)\n\n".format(perPerson))
-        shareText.append("*Settlements:*\n")
+
+        if (isUnequalSplit) {
+            shareText.append("👥 Total Members: $memberCount\n\n")
+            if (individualBreakdown.isNotEmpty()) {
+                shareText.append("*Individual Fair Shares:*\n")
+                individualBreakdown.forEach { shareText.append("• $it\n") }
+                shareText.append("\n")
+            }
+        } else {
+            shareText.append("👥 Members: $memberCount (₹%.2f/person)\n\n".format(perPerson))
+        }
+
+        shareText.append("*Settlement Plan:*\n")
         settlements.forEach { shareText.append("• $it\n") }
         shareText.append("\n_Calculated with Trip Expense Splitter_")
 
@@ -103,10 +149,23 @@ class SettlementActivity : AppCompatActivity() {
             val file = File(cacheDir, fileName)
             val writer = FileWriter(file)
 
-            writer.append("Trip Name,Date,Total Amount,Members Count,Fair Share Per Person\n")
-            writer.append("\"$tripTitle\",\"$currentDate\",${"%.2f".format(totalAmount)},$memberCount,${"%.2f".format(perPerson)}\n\n")
-            writer.append("Settlement Transaction Details\n")
+            if (isUnequalSplit) {
+                writer.append("Trip Name,Date,Total Amount,Members Count,Split Type\n")
+                writer.append("\"$tripTitle\",\"$currentDate\",${"%.2f".format(totalAmount)},$memberCount,\"Unequal / Itemized\"\n\n")
 
+                if (individualBreakdown.isNotEmpty()) {
+                    writer.append("Individual Fair Share Breakdown\n")
+                    individualBreakdown.forEach { item ->
+                        writer.append("\"$item\"\n")
+                    }
+                    writer.append("\n")
+                }
+            } else {
+                writer.append("Trip Name,Date,Total Amount,Members Count,Fair Share Per Person\n")
+                writer.append("\"$tripTitle\",\"$currentDate\",${"%.2f".format(totalAmount)},$memberCount,${"%.2f".format(perPerson)}\n\n")
+            }
+
+            writer.append("Settlement Transaction Details\n")
             settlements.forEach { line ->
                 writer.append("\"$line\"\n")
             }

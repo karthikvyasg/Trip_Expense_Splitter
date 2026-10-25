@@ -10,7 +10,12 @@ data class TripHistoryItem(
     val date: String,
     val totalAmount: Double,
     val memberCount: Int,
-    val settlements: List<String>
+    val settlements: List<String>,
+    val members: ArrayList<String> = arrayListOf(),
+    val mapKeys: ArrayList<String> = arrayListOf(),
+    val mapValues: ArrayList<String> = arrayListOf(),
+    val isUnequal: Boolean = false,
+    val unequalItemsJson: String = ""
 )
 
 class TripHistoryManager(context: Context) {
@@ -19,7 +24,6 @@ class TripHistoryManager(context: Context) {
 
     fun saveTrip(item: TripHistoryItem) {
         val currentList = getHistory().toMutableList()
-        // If already saved with this ID, replace it; otherwise add to top
         val index = currentList.indexOfFirst { it.id == item.id }
         if (index != -1) {
             currentList[index] = item
@@ -46,11 +50,31 @@ class TripHistoryManager(context: Context) {
             val jsonArray = JSONArray(jsonString)
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
-                val settlementsArray = obj.getJSONArray("settlements")
+
+                val settlementsArray = obj.optJSONArray("settlements") ?: JSONArray()
                 val settlements = mutableListOf<String>()
                 for (j in 0 until settlementsArray.length()) {
                     settlements.add(settlementsArray.getString(j))
                 }
+
+                val membersArray = obj.optJSONArray("members") ?: JSONArray()
+                val members = ArrayList<String>()
+                for (j in 0 until membersArray.length()) {
+                    members.add(membersArray.getString(j))
+                }
+
+                val keysArray = obj.optJSONArray("mapKeys") ?: JSONArray()
+                val mapKeys = ArrayList<String>()
+                for (j in 0 until keysArray.length()) {
+                    mapKeys.add(keysArray.getString(j))
+                }
+
+                val valuesArray = obj.optJSONArray("mapValues") ?: JSONArray()
+                val mapValues = ArrayList<String>()
+                for (j in 0 until valuesArray.length()) {
+                    mapValues.add(valuesArray.getString(j))
+                }
+
                 list.add(
                     TripHistoryItem(
                         id = obj.getLong("id"),
@@ -58,7 +82,12 @@ class TripHistoryManager(context: Context) {
                         date = obj.getString("date"),
                         totalAmount = obj.getDouble("totalAmount"),
                         memberCount = obj.getInt("memberCount"),
-                        settlements = settlements
+                        settlements = settlements,
+                        members = members,
+                        mapKeys = mapKeys,
+                        mapValues = mapValues,
+                        isUnequal = obj.optBoolean("isUnequal", false),
+                        unequalItemsJson = obj.optString("unequalItemsJson", "")
                     )
                 )
             }
@@ -81,6 +110,21 @@ class TripHistoryManager(context: Context) {
             val settlementsArray = JSONArray()
             item.settlements.forEach { settlementsArray.put(it) }
             obj.put("settlements", settlementsArray)
+
+            val membersArray = JSONArray()
+            item.members.forEach { membersArray.put(it) }
+            obj.put("members", membersArray)
+
+            val keysArray = JSONArray()
+            item.mapKeys.forEach { keysArray.put(it) }
+            obj.put("mapKeys", keysArray)
+
+            val valuesArray = JSONArray()
+            item.mapValues.forEach { valuesArray.put(it) }
+            obj.put("mapValues", valuesArray)
+
+            obj.put("isUnequal", item.isUnequal)
+            obj.put("unequalItemsJson", item.unequalItemsJson)
 
             jsonArray.put(obj)
         }

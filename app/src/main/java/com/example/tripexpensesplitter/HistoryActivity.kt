@@ -1,5 +1,6 @@
 package com.example.tripexpensesplitter
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -38,6 +39,35 @@ class HistoryActivity : AppCompatActivity() {
 
         adapter = HistoryAdapter()
         lvTripHistory.adapter = adapter
+
+        // Tap trip: Route dynamically based on split type
+        lvTripHistory.setOnItemClickListener { _, _, position, _ ->
+            val trip = historyList[position]
+
+            if (trip.isUnequal) {
+                val intent = Intent(this, UnequalSplitActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("LOAD_UNEQUAL_FOR_EDIT", true)
+                    putExtra("TRIP_ID", trip.id)
+                    putExtra("TRIP_TITLE", trip.title)
+                    putStringArrayListExtra("MEMBERS", trip.members)
+                    putExtra("UNEQUAL_ITEMS_JSON", trip.unequalItemsJson)
+                }
+                startActivity(intent)
+            } else {
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra("LOAD_TRIP_FOR_EDIT", true)
+                    putExtra("TRIP_ID", trip.id)
+                    putExtra("TRIP_TITLE", trip.title)
+                    putStringArrayListExtra("MEMBERS", trip.members)
+                    putStringArrayListExtra("MAP_KEYS", trip.mapKeys)
+                    putStringArrayListExtra("MAP_VALUES", trip.mapValues)
+                }
+                startActivity(intent)
+            }
+            finish()
+        }
 
         btnClearAllHistory.setOnClickListener {
             if (historyList.isEmpty()) {
@@ -95,8 +125,13 @@ class HistoryActivity : AppCompatActivity() {
             tvTitle.text = item.title
             tvDate.text = item.date
             tvTotal.text = "Total: ₹%.2f".format(item.totalAmount)
-            val perPerson = if (item.memberCount > 0) item.totalAmount / item.memberCount else 0.0
-            tvPerPerson.text = "₹%.2f / person".format(perPerson)
+
+            if (item.isUnequal) {
+                tvPerPerson.text = "${item.memberCount} Members"
+            } else {
+                val perPerson = if (item.memberCount > 0) item.totalAmount / item.memberCount else 0.0
+                tvPerPerson.text = "₹%.2f / person".format(perPerson)
+            }
 
             tvSettlements.text = item.settlements.joinToString("\n") { "• $it" }
 

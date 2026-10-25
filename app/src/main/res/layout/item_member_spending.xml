@@ -1,57 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:background="@drawable/bg_card"
-    android:padding="12dp"
-    android:gravity="center_vertical"
-    android:layout_marginBottom="8dp"
-    android:elevation="1dp">
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginVertical="6dp"
+    app:cardBackgroundColor="#FFFFFF"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#E9ECEF"
+    app:strokeWidth="1dp">
 
-    <!-- Member Name with Serial Number -->
-    <TextView
-        android:id="@+id/tvMemberName"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#212529" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="10dp">
 
-    <!-- Currency Prefix -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="₹ "
-        android:textSize="15sp"
-        android:textStyle="bold"
-        android:textColor="#495057" />
+        <!-- Member Name -->
+        <TextView
+            android:id="@+id/tvMemberName"
+            android:layout_width="72dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="1. Name"
+            android:textColor="#212529"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
-    <!-- Spending Input Field -->
-    <EditText
-        android:id="@+id/etMemberAmount"
-        android:layout_width="140dp"
-        android:layout_height="44dp"
-        android:background="@drawable/bg_input"
-        android:paddingHorizontal="10dp"
-        android:hint="20+15+100"
-        android:textColorHint="#ADB5BD"
-        android:inputType="phone"
-        android:digits="0123456789+."
-        android:textAlignment="viewEnd"
-        android:textSize="14sp"
-        android:textColor="#212529" />
+        <!-- Stepper Minus (-) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStepMinus"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="34dp"
+            android:layout_height="36dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            android:text="−"
+            android:textColor="#495057"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:backgroundTint="#F1F3F5"
+            app:cornerRadius="8dp" />
 
-    <!-- Remove Member Button -->
-    <ImageButton
-        android:id="@+id/btnDeleteMember"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@android:drawable/ic_menu_delete"
-        android:tint="#DC3545"
-        android:contentDescription="Delete Member"
-        android:layout_marginStart="4dp" />
+        <!-- Expense Field Box -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_input"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="6dp">
 
-</LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="₹"
+                android:textColor="#6C757D"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etMemberAmount"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:digits="0123456789.+- "
+                android:gravity="center_vertical|start"
+                android:hint="0"
+                android:inputType="textVisiblePassword"
+                android:maxLines="1"
+                android:paddingStart="4dp"
+                android:textColor="#212529"
+                android:textColorHint="#ADB5BD"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- Expand / View Full Dialog Button -->
+            <ImageButton
+                android:id="@+id/btnExpandExpression"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="View Full Expression"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="#6C757D" />
+        </LinearLayout>
+
+        <!-- Stepper Plus (+) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStepPlus"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="34dp"
+            android:layout_height="36dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:padding="0dp"
+            android:text="+"
+            android:textColor="#0D6EFD"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:backgroundTint="#E7F1FF"
+            app:cornerRadius="8dp" />
+
+        <!-- Delete Member -->
+        <ImageButton
+            android:id="@+id/btnDeleteMember"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Delete Member"
+            android:src="@android:drawable/ic_menu_delete"
+            app:tint="#DC3545" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

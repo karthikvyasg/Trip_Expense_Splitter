@@ -85,6 +85,7 @@
                 android:background="@color/border_color"
                 android:layout_marginHorizontal="12dp" />
 
+            <!-- Dynamic Right Column: Shows "PER PERSON" in Equal, "MEMBERS" in Unequal -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -92,6 +93,7 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/tvFinalPerPersonLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="PER PERSON"
@@ -108,6 +110,36 @@
                     android:textStyle="bold"
                     android:textColor="#198754" />
             </LinearLayout>
+        </LinearLayout>
+
+        <!-- Individual Breakdown Card (Visible only in Unequal Split) -->
+        <LinearLayout
+            android:id="@+id/layoutIndividualBreakdownCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="@drawable/bg_card"
+            android:padding="14dp"
+            android:elevation="2dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="EACH MEMBER'S FAIR SHARE"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:id="@+id/tvIndividualBreakdownText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:lineSpacingExtra="4dp" />
         </LinearLayout>
 
         <TextView
