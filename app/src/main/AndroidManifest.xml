@@ -32,13 +32,13 @@
         <activity
             android:name=".MainActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustPan" />
 
         <!-- Unequal / Itemized Split Activity -->
         <activity
             android:name=".UnequalSplitActivity"
             android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustPan" />
 
         <!-- Settlement Screen -->
         <activity
