@@ -1,6 +1,8 @@
 package com.example.tripexpensesplitter
 
+import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,9 +18,15 @@ import android.widget.PopupWindow
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.play.core.appupdate.AppUpdateManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.min
@@ -39,11 +47,26 @@ class UnequalSplitActivity : AppCompatActivity() {
     private var tripSessionId: Long = System.currentTimeMillis()
     private var activeToast: Toast? = null
 
+    // Google Play In-App Update Manager
+    private lateinit var appUpdateManager: AppUpdateManager
+    private val updateLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) {
+            // Update was cancelled or failed - re-trigger since it is mandatory
+            checkForMandatoryUpdate()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         super.onCreate(savedInstanceState)
         DisplayUtils.enableMaxRefreshRate(this)
         setContentView(R.layout.activity_unequal_split)
+
+        // Initialize update check
+        appUpdateManager = AppUpdateManagerFactory.create(this)
+        checkForMandatoryUpdate()
 
         etTripTitle = findViewById(R.id.etUnequalTripTitle)
         etMemberName = findViewById(R.id.etUnequalMemberName)
@@ -89,7 +112,6 @@ class UnequalSplitActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", null)
                 .show()
         }
-
         btnAddMember.setOnClickListener {
             val name = etMemberName.text.toString().trim()
             if (name.isEmpty()) {
@@ -187,6 +209,35 @@ class UnequalSplitActivity : AppCompatActivity() {
 
         // Handle reloading from History on fresh start
         handleHistoryIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // If an update was in progress and the app returns to foreground, ensure it resumes
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    updateLauncher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
+                )
+            }
+        }
+    }
+
+    private fun checkForMandatoryUpdate() {
+        val appUpdateInfoTask = appUpdateManager.appUpdateInfo
+        appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+                && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
+            ) {
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    updateLauncher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
+                )
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
