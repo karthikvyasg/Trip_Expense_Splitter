@@ -6,6 +6,9 @@ import android.view.WindowManager
 
 object DisplayUtils {
     fun enableMaxRefreshRate(activity: Activity) {
+        // Ensure screenshots and screen capture are never restricted by the window
+        activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val display = activity.display ?: return
             val supportedModes = display.supportedModes

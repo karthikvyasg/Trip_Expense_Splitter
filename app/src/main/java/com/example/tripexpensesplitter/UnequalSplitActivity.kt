@@ -390,8 +390,10 @@ class UnequalSplitActivity : AppCompatActivity() {
         }
 
         btnCancel.setOnClickListener { dialog.dismiss() }
-
+        dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         dialog.show()
+        dialog.show()
+
         val width = (resources.displayMetrics.widthPixels * 0.92).toInt()
         dialog.window?.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT)
     }
