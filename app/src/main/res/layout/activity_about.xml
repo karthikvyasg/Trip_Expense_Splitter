@@ -177,7 +177,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:lineSpacingExtra="4dp"
-                                android:text="• Saketh Bose\n• Sravani\n• Jahnavi\n• Nithin\n• Pavan\n• Srinidhi"
+                                android:text="• Saketh Bose\n• Sravani\n• Jahnavi\n• Nithin\n• Pavan\n• srinidi"
                                 android:textColor="#495057"
                                 android:textSize="13sp" />
                         </LinearLayout>

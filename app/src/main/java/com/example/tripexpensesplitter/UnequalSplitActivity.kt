@@ -2,20 +2,18 @@ package com.example.tripexpensesplitter
 
 import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.PopupWindow
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,26 +32,42 @@ import kotlin.math.roundToInt
 
 class UnequalSplitActivity : AppCompatActivity() {
 
-    private val memberList = ArrayList<String>()
-    private val expenseList = ArrayList<UnequalExpenseItem>()
+    // Master list of member names across all tables
+    private val masterMemberList = ArrayList<String>()
+
+    private class ActivityCardHolder(
+        val cardView: View,
+        val etTitle: EditText,
+        val rowsContainer: LinearLayout,
+        val tvEmptyHint: TextView,
+        val tvSummary: TextView,
+        val tvTotal: TextView,
+        val rowViews: ArrayList<MemberRowHolder> = ArrayList()
+    )
+
+    private class MemberRowHolder(
+        val rowView: View,
+        val tvIndex: TextView,
+        val etName: EditText,
+        val cbActive: CheckBox,
+        val etPaid: EditText,
+        val btnDelete: ImageButton
+    )
+
+    private val activityCardHolders = ArrayList<ActivityCardHolder>()
 
     private lateinit var etTripTitle: EditText
-    private lateinit var etMemberName: EditText
-    private lateinit var tvMembersSummary: TextView
-    private lateinit var tvEmptyPrompt: TextView
-    private lateinit var tvLiveTotal: TextView
     private lateinit var layoutContainer: LinearLayout
+    private lateinit var tvLiveGrandTotal: TextView
 
     private var tripSessionId: Long = System.currentTimeMillis()
     private var activeToast: Toast? = null
 
-    // Google Play In-App Update Manager
     private lateinit var appUpdateManager: AppUpdateManager
     private val updateLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode != Activity.RESULT_OK) {
-            // Update was cancelled or failed - re-trigger since it is mandatory
             checkForMandatoryUpdate()
         }
     }
@@ -64,28 +78,22 @@ class UnequalSplitActivity : AppCompatActivity() {
         DisplayUtils.enableMaxRefreshRate(this)
         setContentView(R.layout.activity_unequal_split)
 
-        // Initialize update check
         appUpdateManager = AppUpdateManagerFactory.create(this)
         checkForMandatoryUpdate()
 
         etTripTitle = findViewById(R.id.etUnequalTripTitle)
-        etMemberName = findViewById(R.id.etUnequalMemberName)
-        tvMembersSummary = findViewById(R.id.tvUnequalMembersSummary)
-        tvEmptyPrompt = findViewById(R.id.tvEmptyExpensePrompt)
-        tvLiveTotal = findViewById(R.id.tvUnequalLiveTotal)
-        layoutContainer = findViewById(R.id.layoutExpenseItemsContainer)
+        layoutContainer = findViewById(R.id.layoutActivitiesContainer)
+        tvLiveGrandTotal = findViewById(R.id.tvUnequalLiveTotal)
 
         val btnBack = findViewById<ImageButton>(R.id.btnBackUnequal)
         val btnMenu = findViewById<ImageButton>(R.id.btnMenuUnequal)
-        val btnAddMember = findViewById<Button>(R.id.btnAddUnequalMember)
-        val btnOpenAddExpense = findViewById<Button>(R.id.btnOpenAddExpenseDialog)
+        val btnAddActivity = findViewById<Button>(R.id.btnAddNewExpenseActivity)
         val btnCalculate = findViewById<Button>(R.id.btnCalculateUnequalSplit)
         val btnHistory = findViewById<Button>(R.id.btnUnequalHistory)
         val btnReset = findViewById<Button>(R.id.btnUnequalReset)
 
         btnBack.setOnClickListener { finish() }
 
-        // Hamburger Menu trigger (matching MainActivity)
         btnMenu?.setOnClickListener { view ->
             showAppMenu(view)
         }
@@ -98,145 +106,31 @@ class UnequalSplitActivity : AppCompatActivity() {
         btnReset.setOnClickListener {
             MaterialAlertDialogBuilder(this)
                 .setTitle("Reset Trip?")
-                .setMessage("Are you sure you want to clear this trip? All added members and items will be lost.")
+                .setMessage("Clear all activity tables and member inputs?")
                 .setPositiveButton("Reset") { _, _ ->
                     tripSessionId = System.currentTimeMillis()
                     etTripTitle.text.clear()
-                    etMemberName.text.clear()
-                    memberList.clear()
-                    expenseList.clear()
-                    updateMembersDisplay()
-                    renderExpenseList()
+                    masterMemberList.clear()
+                    activityCardHolders.clear()
+                    layoutContainer.removeAllViews()
+                    initFreshState()
                     showSingleToast("Trip reset")
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
         }
-        btnAddMember.setOnClickListener {
-            val name = etMemberName.text.toString().trim()
-            if (name.isEmpty()) {
-                showSingleToast("Please enter a member name")
-                return@setOnClickListener
-            }
-            if (memberList.contains(name)) {
-                showSingleToast("Member already exists")
-                return@setOnClickListener
-            }
-            memberList.add(name)
-            etMemberName.text.clear()
-            updateMembersDisplay()
-        }
 
-        btnOpenAddExpense.setOnClickListener {
-            if (memberList.size < 2) {
-                showSingleToast("Add at least 2 members first!")
-                return@setOnClickListener
-            }
-            showAddExpenseItemDialog()
+        btnAddActivity.setOnClickListener {
+            addNewActivityCard()
         }
 
         btnCalculate.setOnClickListener {
-            if (memberList.size < 2) {
-                showSingleToast("Add at least 2 members to split!")
-                return@setOnClickListener
-            }
-            if (expenseList.isEmpty()) {
-                showSingleToast("Add at least one place/activity expense!")
-                return@setOnClickListener
-            }
-
-            val fairShareMap = mutableMapOf<String, Double>()
-            val placesJoinedMap = mutableMapOf<String, Int>()
-            for (m in memberList) {
-                fairShareMap[m] = 0.0
-                placesJoinedMap[m] = 0
-            }
-
-            for (expense in expenseList) {
-                val participants = expense.participants
-                if (participants.isNotEmpty()) {
-                    val splitAmount = expense.amount / participants.size
-                    for (p in participants) {
-                        fairShareMap[p] = (fairShareMap[p] ?: 0.0) + splitAmount
-                        placesJoinedMap[p] = (placesJoinedMap[p] ?: 0) + 1
-                    }
-                }
-            }
-
-            val totalPlaces = expenseList.size
-            val breakdownList = ArrayList<String>()
-            for (m in memberList) {
-                val share = fairShareMap[m] ?: 0.0
-                val joined = placesJoinedMap[m] ?: 0
-                val note = if (joined == totalPlaces) {
-                    "joined all $totalPlaces places"
-                } else {
-                    "joined $joined of $totalPlaces places"
-                }
-                breakdownList.add("$m: ₹%.2f ($note)".format(share))
-            }
-
-            val settlements = calculateUnequalSettlements(memberList, expenseList)
-            val totalTripCost = expenseList.sumOf { it.amount }
-            val rawTitle = etTripTitle.text.toString().trim()
-
-            // Serialize expenses to JSON for history reloading
-            val jsonArray = JSONArray()
-            for (item in expenseList) {
-                val obj = JSONObject()
-                obj.put("title", item.title)
-                obj.put("amount", item.amount)
-                obj.put("paidBy", item.paidBy)
-                val partArray = JSONArray()
-                item.participants.forEach { partArray.put(it) }
-                obj.put("participants", partArray)
-                jsonArray.put(obj)
-            }
-
-            val intent = Intent(this, SettlementActivity::class.java).apply {
-                putExtra("IS_UNEQUAL_SPLIT", true)
-                putExtra("TRIP_ID", tripSessionId)
-                putExtra("TRIP_TITLE", if (rawTitle.isEmpty()) "Unequal Trip Split" else rawTitle)
-                putExtra("TOTAL_AMOUNT", totalTripCost)
-                putExtra("MEMBER_COUNT", memberList.size)
-                putStringArrayListExtra("SETTLEMENTS", ArrayList(settlements))
-                putStringArrayListExtra("INDIVIDUAL_BREAKDOWN", breakdownList)
-                putStringArrayListExtra("MEMBERS", memberList)
-                putExtra("UNEQUAL_ITEMS_JSON", jsonArray.toString())
-            }
-            startActivity(intent)
+            processCalculationAndNavigate()
         }
 
-        // Handle reloading from History on fresh start
-        handleHistoryIntent(intent)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // If an update was in progress and the app returns to foreground, ensure it resumes
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
-            if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
-                appUpdateManager.startUpdateFlowForResult(
-                    appUpdateInfo,
-                    updateLauncher,
-                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
-                )
-            }
-        }
-    }
-
-    private fun checkForMandatoryUpdate() {
-        val appUpdateInfoTask = appUpdateManager.appUpdateInfo
-        appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
-            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
-            ) {
-                appUpdateManager.startUpdateFlowForResult(
-                    appUpdateInfo,
-                    updateLauncher,
-                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
-                )
-            }
+        // Initialize state or load from history
+        if (!handleHistoryIntent(intent)) {
+            initFreshState()
         }
     }
 
@@ -246,225 +140,281 @@ class UnequalSplitActivity : AppCompatActivity() {
         handleHistoryIntent(intent)
     }
 
-    private fun handleHistoryIntent(inIntent: Intent) {
-        if (inIntent.getBooleanExtra("LOAD_UNEQUAL_FOR_EDIT", false)) {
-            tripSessionId = inIntent.getLongExtra("TRIP_ID", System.currentTimeMillis())
-            val savedTitle = inIntent.getStringExtra("TRIP_TITLE") ?: ""
-            etTripTitle.setText(savedTitle)
+    private fun initFreshState() {
+        masterMemberList.clear()
+        addNewActivityCard("Expense Activity 1")
+    }
 
-            val savedMembers = inIntent.getStringArrayListExtra("MEMBERS") ?: arrayListOf()
-            memberList.clear()
-            memberList.addAll(savedMembers)
+    private fun addNewActivityCard(customTitle: String? = null) {
+        val cardIndex = activityCardHolders.size + 1
+        val cardView = LayoutInflater.from(this).inflate(R.layout.item_activity_table_card, layoutContainer, false)
 
-            val rawJson = inIntent.getStringExtra("UNEQUAL_ITEMS_JSON") ?: ""
-            expenseList.clear()
-            if (rawJson.isNotEmpty()) {
-                try {
-                    val array = JSONArray(rawJson)
-                    for (i in 0 until array.length()) {
-                        val obj = array.getJSONObject(i)
-                        val title = obj.getString("title")
-                        val amount = obj.getDouble("amount")
-                        val paidBy = obj.getString("paidBy")
+        val etTitle = cardView.findViewById<EditText>(R.id.etActivityTitle)
+        val rowsContainer = cardView.findViewById<LinearLayout>(R.id.layoutPersonRowsContainer)
+        val tvEmptyHint = cardView.findViewById<TextView>(R.id.tvEmptyPersonHint)
+        val btnAddPerson = cardView.findViewById<Button>(R.id.btnAddPersonRow)
+        val btnDeleteCard = cardView.findViewById<ImageButton>(R.id.btnDeleteActivityCard)
+        val tvSummary = cardView.findViewById<TextView>(R.id.tvActivitySummary)
+        val tvTotal = cardView.findViewById<TextView>(R.id.tvActivityCardTotal)
 
-                        val pArray = obj.getJSONArray("participants")
-                        val participants = mutableListOf<String>()
-                        for (j in 0 until pArray.length()) {
-                            participants.add(pArray.getString(j))
+        etTitle.setText(customTitle ?: "Expense Activity $cardIndex")
+
+        val cardHolder = ActivityCardHolder(
+            cardView = cardView,
+            etTitle = etTitle,
+            rowsContainer = rowsContainer,
+            tvEmptyHint = tvEmptyHint,
+            tvSummary = tvSummary,
+            tvTotal = tvTotal
+        )
+
+        for (member in masterMemberList) {
+            addMemberRowToCard(cardHolder, member)
+        }
+
+        btnAddPerson.setOnClickListener {
+            addNewMemberGlobally()
+        }
+
+        btnDeleteCard.setOnClickListener {
+            if (activityCardHolders.size <= 1) {
+                showSingleToast("At least one expense activity is required!")
+                return@setOnClickListener
+            }
+            layoutContainer.removeView(cardView)
+            activityCardHolders.remove(cardHolder)
+            updateGrandTotal()
+        }
+
+        activityCardHolders.add(cardHolder)
+        layoutContainer.addView(cardView)
+        updateCardSummaryAndTotal(cardHolder)
+        updateGrandTotal()
+    }
+
+    private fun addNewMemberGlobally() {
+        val newPersonNum = masterMemberList.size + 1
+        val newMemberName = "Person $newPersonNum"
+        masterMemberList.add(newMemberName)
+
+        for (card in activityCardHolders) {
+            addMemberRowToCard(card, newMemberName)
+            updateCardSummaryAndTotal(card)
+        }
+        updateGrandTotal()
+    }
+
+    private fun addMemberRowToCard(
+        cardHolder: ActivityCardHolder,
+        memberName: String,
+        initialPaid: Double = 0.0,
+        initialActive: Boolean = true
+    ) {
+        val rowView = LayoutInflater.from(this).inflate(R.layout.item_activity_person_row, cardHolder.rowsContainer, false)
+        val tvIndex = rowView.findViewById<TextView>(R.id.tvPersonIndex)
+        val etName = rowView.findViewById<EditText>(R.id.etPersonName)
+        val cbActive = rowView.findViewById<CheckBox>(R.id.cbPersonActive)
+        val etPaid = rowView.findViewById<EditText>(R.id.etPersonPaid)
+        val btnDelete = rowView.findViewById<ImageButton>(R.id.btnDeletePerson)
+
+        val rowIndex = cardHolder.rowViews.size
+        tvIndex.text = "${rowIndex + 1}."
+        etName.setText(memberName)
+        cbActive.isChecked = initialActive
+        if (initialPaid > 0.0) {
+            etPaid.setText(if (initialPaid % 1.0 == 0.0) initialPaid.toLong().toString() else "%.2f".format(initialPaid))
+        }
+
+        // Two-way sync: changing person name in one table updates all other tables
+        etName.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val currentPos = cardHolder.rowViews.indexOfFirst { it.rowView == rowView }
+                if (currentPos in masterMemberList.indices) {
+                    val updatedName = s.toString().trim()
+                    masterMemberList[currentPos] = updatedName
+                    for (otherCard in activityCardHolders) {
+                        if (otherCard != cardHolder && currentPos in otherCard.rowViews.indices) {
+                            val otherEt = otherCard.rowViews[currentPos].etName
+                            if (otherEt.text.toString() != updatedName) {
+                                otherEt.setText(updatedName)
+                            }
                         }
-
-                        expenseList.add(
-                            UnequalExpenseItem(
-                                title = title,
-                                amount = amount,
-                                paidBy = paidBy,
-                                participants = participants
-                            )
-                        )
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
             }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
-            updateMembersDisplay()
-            renderExpenseList()
-            showSingleToast("Unequal trip loaded for editing")
-        } else {
-            updateMembersDisplay()
-            renderExpenseList()
+        val calcWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updateCardSummaryAndTotal(cardHolder)
+                updateGrandTotal()
+            }
+            override fun afterTextChanged(s: Editable?) {}
         }
+        etPaid.addTextChangedListener(calcWatcher)
+        cbActive.setOnCheckedChangeListener { _, _ ->
+            updateCardSummaryAndTotal(cardHolder)
+            updateGrandTotal()
+        }
+
+        btnDelete.setOnClickListener {
+            val positionToDelete = cardHolder.rowViews.indexOfFirst { it.rowView == rowView }
+            if (positionToDelete != -1) {
+                deleteMemberGlobally(positionToDelete)
+            }
+        }
+
+        val memberHolder = MemberRowHolder(rowView, tvIndex, etName, cbActive, etPaid, btnDelete)
+        cardHolder.rowViews.add(memberHolder)
+        cardHolder.rowsContainer.addView(rowView)
+        cardHolder.tvEmptyHint.visibility = View.GONE
     }
 
-    // Synced menu matching MainActivity exactly
-    private fun showAppMenu(anchorView: View) {
-        val inflater = LayoutInflater.from(this)
-        val popupView = inflater.inflate(R.layout.layout_custom_menu, null)
+    private fun deleteMemberGlobally(index: Int) {
+        if (index !in masterMemberList.indices) return
+        masterMemberList.removeAt(index)
 
-        val popupWindow = PopupWindow(
-            popupView,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
-            elevation = 16f
+        for (card in activityCardHolders) {
+            if (index in card.rowViews.indices) {
+                val holder = card.rowViews.removeAt(index)
+                card.rowsContainer.removeView(holder.rowView)
+
+                // Re-index remaining rows: 1., 2., 3.
+                for ((i, row) in card.rowViews.withIndex()) {
+                    row.tvIndex.text = "${i + 1}."
+                }
+
+                if (card.rowViews.isEmpty()) {
+                    card.tvEmptyHint.visibility = View.VISIBLE
+                }
+                updateCardSummaryAndTotal(card)
+            }
         }
-
-        popupView.findViewById<View>(R.id.menuItemAbout)?.setOnClickListener {
-            popupWindow.dismiss()
-            val intent = Intent(this, AboutActivity::class.java)
-            startActivity(intent)
-        }
-
-        popupWindow.showAsDropDown(anchorView, -30, 10)
+        updateGrandTotal()
     }
 
-    private fun updateMembersDisplay() {
-        if (memberList.isEmpty()) {
-            tvMembersSummary.text = "No members added yet. Add at least 2 members."
-        } else {
-            tvMembersSummary.text = "Trip Members (${memberList.size}): " + memberList.joinToString(", ")
+    private fun updateCardSummaryAndTotal(cardHolder: ActivityCardHolder) {
+        var cardPaidTotal = 0.0
+        var activeCount = 0
+
+        for (row in cardHolder.rowViews) {
+            val paid = row.etPaid.text.toString().toDoubleOrNull() ?: 0.0
+            cardPaidTotal += paid
+            if (row.cbActive.isChecked) {
+                activeCount++
+            }
         }
+
+        val splitShare = if (activeCount > 0) cardPaidTotal / activeCount else 0.0
+        cardHolder.tvSummary.text = "$activeCount of ${cardHolder.rowViews.size} active (₹%.2f/person)".format(splitShare)
+        cardHolder.tvTotal.text = "Activity Total: ₹%.2f".format(cardPaidTotal)
     }
 
-    private fun showAddExpenseItemDialog() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_unequal_item, null)
-        val etTitle = dialogView.findViewById<EditText>(R.id.etItemTitle)
-        val etAmount = dialogView.findViewById<EditText>(R.id.etItemAmount)
-        val spPaidBy = dialogView.findViewById<Spinner>(R.id.spPaidBy)
-        val cbContainer = dialogView.findViewById<LinearLayout>(R.id.layoutParticipantCheckboxes)
-        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancelItem)
-        val btnAdd = dialogView.findViewById<Button>(R.id.btnAddItem)
-
-        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, memberList)
-        spPaidBy.adapter = spinnerAdapter
-
-        val checkBoxes = mutableListOf<CheckBox>()
-        for (member in memberList) {
-            val cb = CheckBox(this).apply {
-                text = member
-                isChecked = true
-                textSize = 14f
-                setTextColor(android.graphics.Color.parseColor("#212529"))
+    private fun updateGrandTotal() {
+        var grandTotal = 0.0
+        for (card in activityCardHolders) {
+            for (row in card.rowViews) {
+                grandTotal += row.etPaid.text.toString().toDoubleOrNull() ?: 0.0
             }
-            checkBoxes.add(cb)
-            cbContainer.addView(cb)
         }
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setView(dialogView)
-            .create()
-
-        btnAdd.setOnClickListener {
-            val title = etTitle.text.toString().trim()
-            val amountStr = etAmount.text.toString().trim()
-            val amount = parseSum(amountStr)
-
-            if (title.isEmpty()) {
-                showSingleToast("Please enter an activity/place name")
-                return@setOnClickListener
-            }
-            if (amount <= 0.0) {
-                showSingleToast("Please enter a valid amount")
-                return@setOnClickListener
-            }
-
-            val selectedParticipants = checkBoxes.filter { it.isChecked }.map { it.text.toString() }
-            if (selectedParticipants.isEmpty()) {
-                showSingleToast("Select at least one member who participated!")
-                return@setOnClickListener
-            }
-
-            val paidBy = spPaidBy.selectedItem.toString()
-
-            val item = UnequalExpenseItem(
-                title = title,
-                amount = amount,
-                paidBy = paidBy,
-                participants = selectedParticipants
-            )
-
-            expenseList.add(item)
-            renderExpenseList()
-            dialog.dismiss()
-        }
-
-        btnCancel.setOnClickListener { dialog.dismiss() }
-        dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        dialog.show()
-        dialog.show()
-
-        val width = (resources.displayMetrics.widthPixels * 0.92).toInt()
-        dialog.window?.setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT)
+        tvLiveGrandTotal.text = "₹%.2f".format(grandTotal)
     }
 
-    private fun renderExpenseList() {
-        layoutContainer.removeAllViews()
+    private fun processCalculationAndNavigate() {
+        val validMembers = masterMemberList.mapIndexed { idx, name ->
+            name.ifBlank { "Person ${idx + 1}" }
+        }
 
-        if (expenseList.isEmpty()) {
-            tvEmptyPrompt.visibility = View.VISIBLE
-            tvLiveTotal.text = "₹0.00"
+        if (validMembers.size < 2) {
+            showSingleToast("Add at least 2 people to calculate split!")
             return
         }
 
-        tvEmptyPrompt.visibility = View.GONE
-        val total = expenseList.sumOf { it.amount }
-        tvLiveTotal.text = "₹%.2f".format(total)
-
-        for ((index, item) in expenseList.withIndex()) {
-            val itemView = LayoutInflater.from(this).inflate(R.layout.item_unequal_expense, layoutContainer, false)
-
-            val tvTitle = itemView.findViewById<TextView>(R.id.tvExpenseTitle)
-            val tvAmount = itemView.findViewById<TextView>(R.id.tvExpenseAmount)
-            val tvPaidBy = itemView.findViewById<TextView>(R.id.tvPaidByInfo)
-            val tvParticipants = itemView.findViewById<TextView>(R.id.tvParticipantsInfo)
-            val btnDelete = itemView.findViewById<ImageButton>(R.id.btnDeleteExpense)
-
-            tvTitle.text = "${index + 1}. ${item.title}"
-            tvAmount.text = "₹%.2f".format(item.amount)
-            tvPaidBy.text = "Paid by: ${item.paidBy}"
-
-            val participantText = if (item.participants.size == memberList.size) {
-                "Split equally among all ${memberList.size} members"
-            } else {
-                "Split among ${item.participants.size} of ${memberList.size}: " + item.participants.joinToString(", ")
-            }
-            tvParticipants.text = participantText
-
-            btnDelete.setOnClickListener {
-                expenseList.removeAt(index)
-                renderExpenseList()
-            }
-
-            layoutContainer.addView(itemView)
-        }
-    }
-
-    private fun calculateUnequalSettlements(
-        members: List<String>,
-        expenses: List<UnequalExpenseItem>
-    ): List<String> {
         val netBalanceMap = mutableMapOf<String, Double>()
-        for (m in members) {
+        val individualConsumptionMap = mutableMapOf<String, Double>()
+        for (m in validMembers) {
             netBalanceMap[m] = 0.0
+            individualConsumptionMap[m] = 0.0
         }
 
-        for (expense in expenses) {
-            val amount = expense.amount
-            val payer = expense.paidBy
-            val participants = expense.participants
-            val count = participants.size
+        var grandTotal = 0.0
+        val structuredJsonArray = JSONArray()
 
-            if (count > 0) {
-                val perPersonShare = amount / count
-                netBalanceMap[payer] = (netBalanceMap[payer] ?: 0.0) + amount
+        for (card in activityCardHolders) {
+            val activityTitle = card.etTitle.text.toString().trim().ifEmpty { "Expense Activity" }
+            var cardPaidTotal = 0.0
+            val activeMembers = mutableListOf<String>()
+            val paidByMap = mutableMapOf<String, Double>()
 
-                for (participant in participants) {
-                    netBalanceMap[participant] = (netBalanceMap[participant] ?: 0.0) - perPersonShare
+            for ((idx, row) in card.rowViews.withIndex()) {
+                val currentMemberName = validMembers.getOrElse(idx) { "Person ${idx + 1}" }
+                val paid = row.etPaid.text.toString().toDoubleOrNull() ?: 0.0
+                cardPaidTotal += paid
+                if (paid > 0.0) {
+                    paidByMap[currentMemberName] = paid
+                    netBalanceMap[currentMemberName] = (netBalanceMap[currentMemberName] ?: 0.0) + paid
+                }
+                if (row.cbActive.isChecked) {
+                    activeMembers.add(currentMemberName)
                 }
             }
+
+            grandTotal += cardPaidTotal
+
+            if (activeMembers.isNotEmpty() && cardPaidTotal > 0.0) {
+                val perPersonShare = cardPaidTotal / activeMembers.size
+                for (activeMember in activeMembers) {
+                    netBalanceMap[activeMember] = (netBalanceMap[activeMember] ?: 0.0) - perPersonShare
+                    individualConsumptionMap[activeMember] = (individualConsumptionMap[activeMember] ?: 0.0) + perPersonShare
+                }
+            }
+
+            val cardObj = JSONObject()
+            cardObj.put("title", activityTitle)
+            cardObj.put("totalAmount", cardPaidTotal)
+
+            val paidObj = JSONObject()
+            paidByMap.forEach { (k, v) -> paidObj.put(k, v) }
+            cardObj.put("paidByMap", paidObj)
+
+            val partArray = JSONArray()
+            activeMembers.forEach { partArray.put(it) }
+            cardObj.put("participants", partArray)
+
+            structuredJsonArray.put(cardObj)
         }
 
+        if (grandTotal <= 0.0) {
+            showSingleToast("Enter at least one paid expense amount!")
+            return
+        }
+
+        val breakdownList = ArrayList<String>()
+        for (m in validMembers) {
+            val consumed = individualConsumptionMap[m] ?: 0.0
+            breakdownList.add("$m consumed: ₹%.2f".format(consumed))
+        }
+
+        val settlements = solveDebts(netBalanceMap)
+        val rawTitle = etTripTitle.text.toString().trim()
+
+        val intent = Intent(this, SettlementActivity::class.java).apply {
+            putExtra("IS_UNEQUAL_SPLIT", true)
+            putExtra("TRIP_ID", tripSessionId)
+            putExtra("TRIP_TITLE", if (rawTitle.isEmpty()) "Unequal Activity Split" else rawTitle)
+            putExtra("TOTAL_AMOUNT", grandTotal)
+            putExtra("MEMBER_COUNT", validMembers.size)
+            putStringArrayListExtra("SETTLEMENTS", ArrayList(settlements))
+            putStringArrayListExtra("INDIVIDUAL_BREAKDOWN", breakdownList)
+            putStringArrayListExtra("MEMBERS", ArrayList(validMembers))
+            putExtra("UNEQUAL_ITEMS_JSON", structuredJsonArray.toString())
+        }
+        startActivity(intent)
+    }
+    private fun solveDebts(netBalanceMap: Map<String, Double>): List<String> {
         val debtors = mutableListOf<Pair<String, Double>>()
         val creditors = mutableListOf<Pair<String, Double>>()
 
@@ -508,18 +458,161 @@ class UnequalSplitActivity : AppCompatActivity() {
         return if (settlements.isEmpty()) listOf("All settled up! Nobody owes anything.") else settlements
     }
 
-    private fun parseSum(expression: String): Double {
-        if (expression.isBlank()) return 0.0
-        val cleaned = expression.replace(" ", "")
-        val regex = Regex("(?=[+-])")
-        val tokens = cleaned.split(regex).filter { it.isNotBlank() }
-        var sum = 0.0
-        for (token in tokens) {
-            val trimmed = token.trim()
-            if (trimmed == "+" || trimmed == "-") continue
-            sum += trimmed.toDoubleOrNull() ?: 0.0
+    private fun handleHistoryIntent(inIntent: Intent): Boolean {
+        if (!inIntent.getBooleanExtra("LOAD_UNEQUAL_FOR_EDIT", false)) {
+            return false
         }
-        return maxOf(0.0, sum)
+
+        tripSessionId = inIntent.getLongExtra("TRIP_ID", System.currentTimeMillis())
+        val savedTitle = inIntent.getStringExtra("TRIP_TITLE") ?: ""
+        etTripTitle.setText(savedTitle)
+
+        val savedMembers = inIntent.getStringArrayListExtra("MEMBERS") ?: arrayListOf()
+        masterMemberList.clear()
+        masterMemberList.addAll(savedMembers)
+
+        val rawJson = inIntent.getStringExtra("UNEQUAL_ITEMS_JSON") ?: ""
+        if (rawJson.isNotEmpty()) {
+            try {
+                val array = JSONArray(rawJson)
+                activityCardHolders.clear()
+                layoutContainer.removeAllViews()
+
+                // Fallback to extract member names from JSON if MEMBERS extra wasn't supplied
+                if (masterMemberList.isEmpty()) {
+                    for (i in 0 until array.length()) {
+                        val obj = array.getJSONObject(i)
+                        if (obj.has("paidByMap")) {
+                            val pObj = obj.getJSONObject("paidByMap")
+                            val keys = pObj.keys()
+                            while (keys.hasNext()) {
+                                val k = keys.next()
+                                if (!masterMemberList.contains(k)) masterMemberList.add(k)
+                            }
+                        }
+                        if (obj.has("participants")) {
+                            val pArr = obj.getJSONArray("participants")
+                            for (j in 0 until pArr.length()) {
+                                val p = pArr.getString(j)
+                                if (!masterMemberList.contains(p)) masterMemberList.add(p)
+                            }
+                        }
+                    }
+                }
+
+                // Reconstruct each activity card
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val title = obj.optString("title", "Expense Activity ${i + 1}")
+                    val paidMap = mutableMapOf<String, Double>()
+
+                    if (obj.has("paidByMap")) {
+                        val pObj = obj.getJSONObject("paidByMap")
+                        val keys = pObj.keys()
+                        while (keys.hasNext()) {
+                            val k = keys.next()
+                            paidMap[k] = pObj.getDouble(k)
+                        }
+                    }
+
+                    val activeList = mutableListOf<String>()
+                    if (obj.has("participants")) {
+                        val pArr = obj.getJSONArray("participants")
+                        for (j in 0 until pArr.length()) activeList.add(pArr.getString(j))
+                    }
+
+                    val cardView = LayoutInflater.from(this).inflate(R.layout.item_activity_table_card, layoutContainer, false)
+                    val etTitle = cardView.findViewById<EditText>(R.id.etActivityTitle)
+                    val rowsContainer = cardView.findViewById<LinearLayout>(R.id.layoutPersonRowsContainer)
+                    val tvEmptyHint = cardView.findViewById<TextView>(R.id.tvEmptyPersonHint)
+                    val btnAddPerson = cardView.findViewById<Button>(R.id.btnAddPersonRow)
+                    val btnDeleteCard = cardView.findViewById<ImageButton>(R.id.btnDeleteActivityCard)
+                    val tvSummary = cardView.findViewById<TextView>(R.id.tvActivitySummary)
+                    val tvTotal = cardView.findViewById<TextView>(R.id.tvActivityCardTotal)
+
+                    etTitle.setText(title)
+                    val cardHolder = ActivityCardHolder(cardView, etTitle, rowsContainer, tvEmptyHint, tvSummary, tvTotal)
+
+                    for (m in masterMemberList) {
+                        val isAct = if (activeList.isEmpty()) true else activeList.contains(m)
+                        val pAmt = paidMap[m] ?: 0.0
+                        addMemberRowToCard(cardHolder, m, pAmt, isAct)
+                    }
+
+                    btnAddPerson.setOnClickListener { addNewMemberGlobally() }
+                    btnDeleteCard.setOnClickListener {
+                        if (activityCardHolders.size <= 1) {
+                            showSingleToast("At least one expense activity is required!")
+                            return@setOnClickListener
+                        }
+                        layoutContainer.removeView(cardView)
+                        activityCardHolders.remove(cardHolder)
+                        updateGrandTotal()
+                    }
+
+                    activityCardHolders.add(cardHolder)
+                    layoutContainer.addView(cardView)
+                    updateCardSummaryAndTotal(cardHolder)
+                }
+
+                updateGrandTotal()
+                showSingleToast("Trip loaded for editing")
+                return true
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        return false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { appUpdateInfo ->
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS) {
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    updateLauncher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
+                )
+            }
+        }
+    }
+
+    private fun checkForMandatoryUpdate() {
+        val appUpdateInfoTask = appUpdateManager.appUpdateInfo
+        appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
+            if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+                && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)
+            ) {
+                appUpdateManager.startUpdateFlowForResult(
+                    appUpdateInfo,
+                    updateLauncher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build()
+                )
+            }
+        }
+    }
+
+    private fun showAppMenu(anchorView: View) {
+        val inflater = LayoutInflater.from(this)
+        val popupView = inflater.inflate(R.layout.layout_custom_menu, null)
+
+        val popupWindow = PopupWindow(
+            popupView,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 16f
+        }
+
+        popupView.findViewById<View>(R.id.menuItemAbout)?.setOnClickListener {
+            popupWindow.dismiss()
+            val intent = Intent(this, AboutActivity::class.java)
+            startActivity(intent)
+        }
+
+        popupWindow.showAsDropDown(anchorView, -30, 10)
     }
 
     private fun showSingleToast(message: String) {

@@ -2,124 +2,144 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:background="@android:color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add Place / Activity Expense"
-            android:textColor="#212529"
+            android:text="Add Place / Shared Expense"
+            android:textColor="@color/text_primary"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
 
         <!-- Activity / Place Title -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:hint="Place / Activity (e.g., Resort, Go-Karting)">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etItemTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textCapWords"
-                android:maxLines="1"
-                android:textColor="#212529" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Amount Input -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:hint="Total Amount (₹)">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etItemAmount"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:digits="0123456789.+- "
-                android:inputType="textVisiblePassword"
-                android:maxLines="1"
-                android:textColor="#212529" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Who Paid Spinner -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:text="Who paid the bill?"
-            android:textColor="#495057"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <Spinner
-            android:id="@+id/spPaidBy"
+        <EditText
+            android:id="@+id/etItemTitle"
             android:layout_width="match_parent"
             android:layout_height="46dp"
-            android:layout_marginTop="6dp"
-            android:background="@drawable/bg_input" />
-
-        <!-- Participant Checkboxes Container -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Who took part in this expense?"
-            android:textColor="#495057"
+            android:background="@drawable/bg_input"
+            android:hint="Place / Activity (e.g. Dinner, Fuel, Resort)"
+            android:inputType="textCapWords"
+            android:paddingHorizontal="12dp"
+            android:textColor="@color/text_primary"
             android:textSize="14sp"
-            android:textStyle="bold" />
+            android:layout_marginBottom="16dp" />
 
+        <!-- Section 1: Who Paid -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="1. Who Paid the Bill?"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvTotalPaidBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total: ₹0.00"
+                android:textColor="@color/primary_blue"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Dynamic Container for Payer Rows -->
+        <LinearLayout
+            android:id="@+id/layoutPayerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Section 2: Who Consumed -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="2. Individual Consumption (Who Owes)"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvTotalConsumedBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total: ₹0.00"
+                android:textColor="@color/primary_blue"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Dynamic Container for Consumer Rows -->
+        <LinearLayout
+            android:id="@+id/layoutConsumerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Difference / Validation Note -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Uncheck anyone who skipped this place."
-            android:textColor="#6C757D"
-            android:textSize="12sp" />
-
-        <LinearLayout
-            android:id="@+id/layoutParticipantCheckboxes"
+            android:id="@+id/tvValidationDifference"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical" />
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="Enter amounts: Total Paid must match Total Consumed."
+            android:textColor="#DC3545"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
 
-        <!-- Buttons -->
+        <!-- Dialog Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="end"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/btnCancelItem"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
                 android:text="Cancel"
-                android:textColor="#6C757D" />
+                android:textColor="@color/text_secondary" />
 
             <Button
                 android:id="@+id/btnAddItem"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:backgroundTint="#0D6EFD"
-                android:text="Add Expense"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:backgroundTint="@color/primary_blue"
+                android:text="Save Expense"
                 android:textColor="#FFFFFF"
-                app:cornerRadius="8dp" />
+                app:cornerRadius="10dp" />
         </LinearLayout>
-
     </LinearLayout>
 </ScrollView>

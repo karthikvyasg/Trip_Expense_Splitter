@@ -7,7 +7,7 @@
     android:background="@color/screen_bg"
     android:orientation="vertical">
 
-    <!-- Top App Banner (Identical to Equal Split Header) -->
+    <!-- Top App Banner -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -15,10 +15,9 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
-        android:paddingVertical="18dp"
+        android:paddingVertical="16dp"
         android:elevation="4dp">
 
-        <!-- Back Button (Left) -->
         <ImageButton
             android:id="@+id/btnBackUnequal"
             android:layout_width="40dp"
@@ -29,7 +28,6 @@
             android:contentDescription="Back"
             android:layout_marginEnd="8dp" />
 
-        <!-- Title & Subtitle (Center) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -39,23 +37,19 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="UNEQUAL / ITEMIZED SPLIT"
-                android:textSize="20sp"
+                android:text="UNEQUAL / ACTIVITY SPLIT"
+                android:textSize="18sp"
                 android:textStyle="bold"
-                android:fontFamily="sans-serif-black"
-                android:letterSpacing="0.04"
                 android:textColor="#FFFFFF" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Exclude members based on activities they skipped or didn't join"
+                android:text="Multi-payer &amp; activity skip tracking"
                 android:textSize="12sp"
-                android:textColor="#D0E2FF"
-                android:layout_marginTop="3dp" />
+                android:textColor="#D0E2FF" />
         </LinearLayout>
 
-        <!-- Menu Button (Right - Hamburger matching Equal Split) -->
         <ImageButton
             android:id="@+id/btnMenuUnequal"
             android:layout_width="40dp"
@@ -66,7 +60,7 @@
             android:contentDescription="Menu" />
     </LinearLayout>
 
-    <!-- Scrollable Content Body -->
+    <!-- Main Scroll Body -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -79,7 +73,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Action Row: HISTORY & RESET -->
+            <!-- Top Actions: History & Reset -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -89,7 +83,7 @@
                 <Button
                     android:id="@+id/btnUnequalHistory"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="42dp"
                     android:layout_weight="1"
                     android:text="HISTORY"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -100,7 +94,7 @@
                 <Button
                     android:id="@+id/btnUnequalReset"
                     android:layout_width="0dp"
-                    android:layout_height="44dp"
+                    android:layout_height="42dp"
                     android:layout_weight="1"
                     android:text="RESET"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -110,141 +104,49 @@
                     android:layout_marginStart="6dp" />
             </LinearLayout>
 
-            <!-- Trip Name Input (Bold font matching Equal Split) -->
+            <!-- Trip Name Input -->
             <EditText
                 android:id="@+id/etUnequalTripTitle"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:background="@drawable/bg_card"
-                android:hint="Trip Name (e.g. Goa Trip) - optional"
-                android:inputType="textCapWords"
+                android:hint="TRIP NAME (e.g. Goa Trip)"
+                android:inputType="textCapCharacters"
                 android:maxLines="1"
                 android:paddingHorizontal="14dp"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_hint"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="16dp" />
 
-            <!-- Member Management Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@android:color/white"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="2dp"
-                app:strokeColor="@color/border_color"
-                app:strokeWidth="1dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="1. Add All Trip Members"
-                        android:textColor="@color/text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:orientation="horizontal">
-
-                        <EditText
-                            android:id="@+id/etUnequalMemberName"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_input"
-                            android:hint="Member name..."
-                            android:inputType="textPersonName"
-                            android:maxLines="1"
-                            android:paddingHorizontal="12dp"
-                            android:textColor="@color/text_primary"
-                            android:textColorHint="@color/text_hint"
-                            android:textSize="14sp" />
-
-                        <Button
-                            android:id="@+id/btnAddUnequalMember"
-                            android:layout_width="wrap_content"
-                            android:layout_height="44dp"
-                            android:layout_marginStart="8dp"
-                            android:backgroundTint="@color/primary_blue"
-                            android:text="+ Add"
-                            android:textColor="#FFFFFF"
-                            app:cornerRadius="10dp" />
-                    </LinearLayout>
-
-                    <!-- Active Members Summary Text -->
-                    <TextView
-                        android:id="@+id/tvUnequalMembersSummary"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="No members added yet. Add at least 2 members."
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Expense Items Header & Add Button -->
+            <!-- Container where all Activity Cards are dynamically added -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="2. Places &amp; Shared Expenses"
-                    android:textColor="@color/text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btnOpenAddExpenseDialog"
-                    style="@style/Widget.Material3.Button.TonalButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:text="+ Add Place"
-                    android:textColor="@color/primary_blue"
-                    android:textSize="13sp"
-                    app:backgroundTint="#E7F1FF"
-                    app:cornerRadius="8dp" />
-            </LinearLayout>
-
-            <!-- Empty State Note -->
-            <TextView
-                android:id="@+id/tvEmptyExpensePrompt"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:gravity="center"
-                android:text="No place expenses added.\nTap '+ Add Place' to record an activity or stay."
-                android:textColor="@color/text_hint"
-                android:textSize="14sp" />
-
-            <!-- Dynamic Place Items List -->
-            <LinearLayout
-                android:id="@+id/layoutExpenseItemsContainer"
+                android:id="@+id/layoutActivitiesContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
+            <!-- + New Expense In Same Trip Button -->
+            <Button
+                android:id="@+id/btnAddNewExpenseActivity"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="24dp"
+                android:backgroundTint="#E7F1FF"
+                android:text="+ NEW EXPENSE IN SAME TRIP"
+                android:textColor="@color/primary_blue"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/primary_blue"
+                app:strokeWidth="1dp" />
+
         </LinearLayout>
     </ScrollView>
 
-    <!-- Bottom Live Total & Calculate Action Bar -->
+    <!-- Bottom Bar: Live Grand Total & Calculate -->
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -275,7 +177,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TOTAL TRIP COST"
+                    android:text="GRAND TRIP COST"
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:textStyle="bold" />
@@ -295,7 +197,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
                 android:backgroundTint="@color/primary_blue"
-                android:paddingHorizontal="22dp"
+                android:paddingHorizontal="24dp"
                 android:text="Calculate Split"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp"
