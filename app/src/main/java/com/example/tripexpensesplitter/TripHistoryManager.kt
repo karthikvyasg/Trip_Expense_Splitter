@@ -15,7 +15,8 @@ data class TripHistoryItem(
     val mapKeys: ArrayList<String> = arrayListOf(),
     val mapValues: ArrayList<String> = arrayListOf(),
     val isUnequal: Boolean = false,
-    val unequalItemsJson: String = ""
+    val unequalItemsJson: String = "",
+    val scenarioId: Int = 1
 )
 
 class TripHistoryManager(context: Context) {
@@ -87,7 +88,8 @@ class TripHistoryManager(context: Context) {
                         mapKeys = mapKeys,
                         mapValues = mapValues,
                         isUnequal = obj.optBoolean("isUnequal", false),
-                        unequalItemsJson = obj.optString("unequalItemsJson", "")
+                        unequalItemsJson = obj.optString("unequalItemsJson", ""),
+                        scenarioId = obj.optInt("scenarioId", 1)
                     )
                 )
             }
@@ -125,6 +127,7 @@ class TripHistoryManager(context: Context) {
 
             obj.put("isUnequal", item.isUnequal)
             obj.put("unequalItemsJson", item.unequalItemsJson)
+            obj.put("scenarioId", item.scenarioId)
 
             jsonArray.put(obj)
         }

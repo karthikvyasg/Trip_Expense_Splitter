@@ -52,6 +52,7 @@ class HistoryActivity : AppCompatActivity() {
                     putExtra("TRIP_TITLE", trip.title)
                     putStringArrayListExtra("MEMBERS", trip.members)
                     putExtra("UNEQUAL_ITEMS_JSON", trip.unequalItemsJson)
+                    putExtra("SCENARIO_ID", trip.scenarioId)
                 }
                 startActivity(intent)
             } else {
@@ -127,7 +128,7 @@ class HistoryActivity : AppCompatActivity() {
             tvTotal.text = "Total: ₹%.2f".format(item.totalAmount)
 
             if (item.isUnequal) {
-                tvPerPerson.text = "${item.memberCount} Members"
+                tvPerPerson.text = "Scenario ${item.scenarioId} • ${item.memberCount} Members"
             } else {
                 val perPerson = if (item.memberCount > 0) item.totalAmount / item.memberCount else 0.0
                 tvPerPerson.text = "₹%.2f / person".format(perPerson)

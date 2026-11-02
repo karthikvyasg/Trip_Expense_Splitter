@@ -73,12 +73,12 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Top Actions: History & Reset -->
+            <!-- Action Row: HISTORY & RESET -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:layout_marginBottom="8dp">
 
                 <Button
                     android:id="@+id/btnUnequalHistory"
@@ -102,6 +102,26 @@
                     android:strokeColor="#DC3545"
                     android:textSize="13sp"
                     android:layout_marginStart="6dp" />
+            </LinearLayout>
+
+            <!-- SCENARIO Button directly under RESET -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:layout_marginBottom="12dp">
+
+                <Button
+                    android:id="@+id/btnScenarioDropdown"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="SCENARIO ⌄"
+                    android:textColor="#28A745"
+                    app:strokeColor="#28A745"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="8dp" />
             </LinearLayout>
 
             <!-- Trip Name Input -->

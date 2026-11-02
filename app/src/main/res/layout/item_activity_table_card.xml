@@ -74,7 +74,9 @@
                 android:textStyle="bold"
                 android:textSize="12sp" />
 
+            <!-- Scenario 1 Header: Active -->
             <TextView
+                android:id="@+id/tvHeaderActive"
                 android:layout_width="48dp"
                 android:layout_height="wrap_content"
                 android:gravity="center"
@@ -84,6 +86,20 @@
                 android:textSize="12sp"
                 android:layout_marginStart="4dp" />
 
+            <!-- Scenario 2 Header: Consumed -->
+            <TextView
+                android:id="@+id/tvHeaderConsumed"
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:text="Used (₹)"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:layout_marginStart="4dp"
+                android:visibility="gone" />
+
+            <!-- Paid Header -->
             <TextView
                 android:layout_width="84dp"
                 android:layout_height="wrap_content"

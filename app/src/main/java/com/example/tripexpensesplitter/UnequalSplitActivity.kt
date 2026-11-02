@@ -32,12 +32,21 @@ import kotlin.math.roundToInt
 
 class UnequalSplitActivity : AppCompatActivity() {
 
+    enum class SplitScenario(val id: Int, val shortLabel: String, val fullTitle: String) {
+        SCENARIO_1(1, "SCENARIO: 1 ˅", "Scenario 1: Split by Who Joined & Who Paid How Much"),
+        SCENARIO_2(2, "SCENARIO: 2 ˅", "Scenario 2: Pay by Who Consumed How Much")
+    }
+
+    private var currentScenario: SplitScenario = SplitScenario.SCENARIO_1
+
     // Master list of member names across all tables
     private val masterMemberList = ArrayList<String>()
 
     private class ActivityCardHolder(
         val cardView: View,
         val etTitle: EditText,
+        val tvHeaderActive: TextView,
+        val tvHeaderConsumed: TextView,
         val rowsContainer: LinearLayout,
         val tvEmptyHint: TextView,
         val tvSummary: TextView,
@@ -50,6 +59,7 @@ class UnequalSplitActivity : AppCompatActivity() {
         val tvIndex: TextView,
         val etName: EditText,
         val cbActive: CheckBox,
+        val etConsumed: EditText,
         val etPaid: EditText,
         val btnDelete: ImageButton
     )
@@ -59,6 +69,7 @@ class UnequalSplitActivity : AppCompatActivity() {
     private lateinit var etTripTitle: EditText
     private lateinit var layoutContainer: LinearLayout
     private lateinit var tvLiveGrandTotal: TextView
+    private lateinit var btnScenario: Button
 
     private var tripSessionId: Long = System.currentTimeMillis()
     private var activeToast: Toast? = null
@@ -84,6 +95,7 @@ class UnequalSplitActivity : AppCompatActivity() {
         etTripTitle = findViewById(R.id.etUnequalTripTitle)
         layoutContainer = findViewById(R.id.layoutActivitiesContainer)
         tvLiveGrandTotal = findViewById(R.id.tvUnequalLiveTotal)
+        btnScenario = findViewById(R.id.btnScenarioDropdown)
 
         val btnBack = findViewById<ImageButton>(R.id.btnBackUnequal)
         val btnMenu = findViewById<ImageButton>(R.id.btnMenuUnequal)
@@ -120,6 +132,10 @@ class UnequalSplitActivity : AppCompatActivity() {
                 .show()
         }
 
+        btnScenario.setOnClickListener { anchorView ->
+            showScenarioDropdown(anchorView)
+        }
+
         btnAddActivity.setOnClickListener {
             addNewActivityCard()
         }
@@ -140,6 +156,62 @@ class UnequalSplitActivity : AppCompatActivity() {
         handleHistoryIntent(intent)
     }
 
+    private fun showScenarioDropdown(anchorView: View) {
+        val popupView = LayoutInflater.from(this).inflate(R.layout.popup_scenario_menu, null)
+        val popupWindow = PopupWindow(
+            popupView,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 16f
+            isOutsideTouchable = true
+        }
+
+        val dot1 = popupView.findViewById<View>(R.id.dotScenario1)
+        val dot2 = popupView.findViewById<View>(R.id.dotScenario2)
+
+        dot1?.visibility = if (currentScenario == SplitScenario.SCENARIO_1) View.VISIBLE else View.INVISIBLE
+        dot2?.visibility = if (currentScenario == SplitScenario.SCENARIO_2) View.VISIBLE else View.INVISIBLE
+
+        popupView.findViewById<View>(R.id.itemScenario1)?.setOnClickListener {
+            switchScenario(SplitScenario.SCENARIO_1)
+            popupWindow.dismiss()
+        }
+
+        popupView.findViewById<View>(R.id.itemScenario2)?.setOnClickListener {
+            switchScenario(SplitScenario.SCENARIO_2)
+            popupWindow.dismiss()
+        }
+
+        popupWindow.showAsDropDown(anchorView, 0, 8)
+    }
+
+    private fun switchScenario(newScenario: SplitScenario) {
+        if (currentScenario == newScenario) return
+        currentScenario = newScenario
+        btnScenario.text = newScenario.shortLabel
+
+        for (card in activityCardHolders) {
+            applyScenarioVisibilityToCard(card)
+            updateCardSummaryAndTotal(card)
+        }
+        updateGrandTotal()
+        showSingleToast("Switched to ${newScenario.fullTitle}")
+    }
+
+    private fun applyScenarioVisibilityToCard(cardHolder: ActivityCardHolder) {
+        val isScenario1 = currentScenario == SplitScenario.SCENARIO_1
+
+        cardHolder.tvHeaderActive.visibility = if (isScenario1) View.VISIBLE else View.GONE
+        cardHolder.tvHeaderConsumed.visibility = if (isScenario1) View.GONE else View.VISIBLE
+
+        for (row in cardHolder.rowViews) {
+            row.cbActive.visibility = if (isScenario1) View.VISIBLE else View.GONE
+            row.etConsumed.visibility = if (isScenario1) View.GONE else View.VISIBLE
+        }
+    }
+
     private fun initFreshState() {
         masterMemberList.clear()
         addNewActivityCard("Expense Activity 1")
@@ -150,6 +222,8 @@ class UnequalSplitActivity : AppCompatActivity() {
         val cardView = LayoutInflater.from(this).inflate(R.layout.item_activity_table_card, layoutContainer, false)
 
         val etTitle = cardView.findViewById<EditText>(R.id.etActivityTitle)
+        val tvHeaderActive = cardView.findViewById<TextView>(R.id.tvHeaderActive)
+        val tvHeaderConsumed = cardView.findViewById<TextView>(R.id.tvHeaderConsumed)
         val rowsContainer = cardView.findViewById<LinearLayout>(R.id.layoutPersonRowsContainer)
         val tvEmptyHint = cardView.findViewById<TextView>(R.id.tvEmptyPersonHint)
         val btnAddPerson = cardView.findViewById<Button>(R.id.btnAddPersonRow)
@@ -162,6 +236,8 @@ class UnequalSplitActivity : AppCompatActivity() {
         val cardHolder = ActivityCardHolder(
             cardView = cardView,
             etTitle = etTitle,
+            tvHeaderActive = tvHeaderActive,
+            tvHeaderConsumed = tvHeaderConsumed,
             rowsContainer = rowsContainer,
             tvEmptyHint = tvEmptyHint,
             tvSummary = tvSummary,
@@ -172,8 +248,10 @@ class UnequalSplitActivity : AppCompatActivity() {
             addMemberRowToCard(cardHolder, member)
         }
 
+        applyScenarioVisibilityToCard(cardHolder)
+
         btnAddPerson.setOnClickListener {
-            addNewMemberGlobally()
+            addNewMemberGlobally(originCard = cardHolder)
         }
 
         btnDeleteCard.setOnClickListener {
@@ -192,13 +270,21 @@ class UnequalSplitActivity : AppCompatActivity() {
         updateGrandTotal()
     }
 
-    private fun addNewMemberGlobally() {
+    private fun addNewMemberGlobally(originCard: ActivityCardHolder? = null) {
         val newPersonNum = masterMemberList.size + 1
         val newMemberName = "Person $newPersonNum"
         masterMemberList.add(newMemberName)
 
         for (card in activityCardHolders) {
-            addMemberRowToCard(card, newMemberName)
+            val isActiveOnThisCard = if (originCard != null) card == originCard else true
+            addMemberRowToCard(
+                cardHolder = card,
+                memberName = newMemberName,
+                initialPaid = 0.0,
+                initialConsumed = 0.0,
+                initialActive = isActiveOnThisCard
+            )
+            applyScenarioVisibilityToCard(card)
             updateCardSummaryAndTotal(card)
         }
         updateGrandTotal()
@@ -208,12 +294,14 @@ class UnequalSplitActivity : AppCompatActivity() {
         cardHolder: ActivityCardHolder,
         memberName: String,
         initialPaid: Double = 0.0,
+        initialConsumed: Double = 0.0,
         initialActive: Boolean = true
     ) {
         val rowView = LayoutInflater.from(this).inflate(R.layout.item_activity_person_row, cardHolder.rowsContainer, false)
         val tvIndex = rowView.findViewById<TextView>(R.id.tvPersonIndex)
         val etName = rowView.findViewById<EditText>(R.id.etPersonName)
         val cbActive = rowView.findViewById<CheckBox>(R.id.cbPersonActive)
+        val etConsumed = rowView.findViewById<EditText>(R.id.etPersonConsumed)
         val etPaid = rowView.findViewById<EditText>(R.id.etPersonPaid)
         val btnDelete = rowView.findViewById<ImageButton>(R.id.btnDeletePerson)
 
@@ -221,8 +309,17 @@ class UnequalSplitActivity : AppCompatActivity() {
         tvIndex.text = "${rowIndex + 1}."
         etName.setText(memberName)
         cbActive.isChecked = initialActive
+
+        val isScenario1 = currentScenario == SplitScenario.SCENARIO_1
+        cbActive.visibility = if (isScenario1) View.VISIBLE else View.GONE
+        etConsumed.visibility = if (isScenario1) View.GONE else View.VISIBLE
+
         if (initialPaid > 0.0) {
             etPaid.setText(if (initialPaid % 1.0 == 0.0) initialPaid.toLong().toString() else "%.2f".format(initialPaid))
+        }
+
+        if (initialConsumed > 0.0) {
+            etConsumed.setText(if (initialConsumed % 1.0 == 0.0) initialConsumed.toLong().toString() else "%.2f".format(initialConsumed))
         }
 
         // Two-way sync: changing person name in one table updates all other tables
@@ -254,7 +351,9 @@ class UnequalSplitActivity : AppCompatActivity() {
             }
             override fun afterTextChanged(s: Editable?) {}
         }
+
         etPaid.addTextChangedListener(calcWatcher)
+        etConsumed.addTextChangedListener(calcWatcher)
         cbActive.setOnCheckedChangeListener { _, _ ->
             updateCardSummaryAndTotal(cardHolder)
             updateGrandTotal()
@@ -267,7 +366,7 @@ class UnequalSplitActivity : AppCompatActivity() {
             }
         }
 
-        val memberHolder = MemberRowHolder(rowView, tvIndex, etName, cbActive, etPaid, btnDelete)
+        val memberHolder = MemberRowHolder(rowView, tvIndex, etName, cbActive, etConsumed, etPaid, btnDelete)
         cardHolder.rowViews.add(memberHolder)
         cardHolder.rowsContainer.addView(rowView)
         cardHolder.tvEmptyHint.visibility = View.GONE
@@ -298,19 +397,35 @@ class UnequalSplitActivity : AppCompatActivity() {
 
     private fun updateCardSummaryAndTotal(cardHolder: ActivityCardHolder) {
         var cardPaidTotal = 0.0
-        var activeCount = 0
 
-        for (row in cardHolder.rowViews) {
-            val paid = row.etPaid.text.toString().toDoubleOrNull() ?: 0.0
-            cardPaidTotal += paid
-            if (row.cbActive.isChecked) {
-                activeCount++
+        if (currentScenario == SplitScenario.SCENARIO_1) {
+            var activeCount = 0
+            for (row in cardHolder.rowViews) {
+                val paid = row.etPaid.text.toString().toDoubleOrNull() ?: 0.0
+                cardPaidTotal += paid
+                if (row.cbActive.isChecked) {
+                    activeCount++
+                }
             }
-        }
+            val splitShare = if (activeCount > 0) cardPaidTotal / activeCount else 0.0
+            cardHolder.tvSummary.text = "$activeCount of ${cardHolder.rowViews.size} active (₹%.2f/person)".format(splitShare)
+            cardHolder.tvTotal.text = "Activity Total: ₹%.2f".format(cardPaidTotal)
+        } else {
+            var cardConsumedTotal = 0.0
+            for (row in cardHolder.rowViews) {
+                val paid = row.etPaid.text.toString().toDoubleOrNull() ?: 0.0
+                val consumed = row.etConsumed.text.toString().toDoubleOrNull() ?: 0.0
+                cardPaidTotal += paid
+                cardConsumedTotal += consumed
+            }
+            val diff = cardPaidTotal - cardConsumedTotal
+            val diffText = if (kotlin.math.abs(diff) > 0.01) {
+                if (diff > 0) " (₹%.2f unallocated)".format(diff) else " (₹%.2f over-consumed)".format(-diff)
+            } else ""
 
-        val splitShare = if (activeCount > 0) cardPaidTotal / activeCount else 0.0
-        cardHolder.tvSummary.text = "$activeCount of ${cardHolder.rowViews.size} active (₹%.2f/person)".format(splitShare)
-        cardHolder.tvTotal.text = "Activity Total: ₹%.2f".format(cardPaidTotal)
+            cardHolder.tvSummary.text = "Used: ₹%.2f%s".format(cardConsumedTotal, diffText)
+            cardHolder.tvTotal.text = "Paid Total: ₹%.2f".format(cardPaidTotal)
+        }
     }
 
     private fun updateGrandTotal() {
@@ -346,17 +461,28 @@ class UnequalSplitActivity : AppCompatActivity() {
         for (card in activityCardHolders) {
             val activityTitle = card.etTitle.text.toString().trim().ifEmpty { "Expense Activity" }
             var cardPaidTotal = 0.0
+            var cardConsumedTotal = 0.0
             val activeMembers = mutableListOf<String>()
             val paidByMap = mutableMapOf<String, Double>()
+            val consumedByMap = mutableMapOf<String, Double>()
 
             for ((idx, row) in card.rowViews.withIndex()) {
                 val currentMemberName = validMembers.getOrElse(idx) { "Person ${idx + 1}" }
                 val paid = row.etPaid.text.toString().toDoubleOrNull() ?: 0.0
+                val consumed = row.etConsumed.text.toString().toDoubleOrNull() ?: 0.0
+
                 cardPaidTotal += paid
+                cardConsumedTotal += consumed
+
                 if (paid > 0.0) {
                     paidByMap[currentMemberName] = paid
                     netBalanceMap[currentMemberName] = (netBalanceMap[currentMemberName] ?: 0.0) + paid
                 }
+
+                if (consumed > 0.0) {
+                    consumedByMap[currentMemberName] = consumed
+                }
+
                 if (row.cbActive.isChecked) {
                     activeMembers.add(currentMemberName)
                 }
@@ -364,11 +490,30 @@ class UnequalSplitActivity : AppCompatActivity() {
 
             grandTotal += cardPaidTotal
 
-            if (activeMembers.isNotEmpty() && cardPaidTotal > 0.0) {
-                val perPersonShare = cardPaidTotal / activeMembers.size
-                for (activeMember in activeMembers) {
-                    netBalanceMap[activeMember] = (netBalanceMap[activeMember] ?: 0.0) - perPersonShare
-                    individualConsumptionMap[activeMember] = (individualConsumptionMap[activeMember] ?: 0.0) + perPersonShare
+            if (currentScenario == SplitScenario.SCENARIO_1) {
+                if (activeMembers.isNotEmpty() && cardPaidTotal > 0.0) {
+                    val perPersonShare = cardPaidTotal / activeMembers.size
+                    for (activeMember in activeMembers) {
+                        netBalanceMap[activeMember] = (netBalanceMap[activeMember] ?: 0.0) - perPersonShare
+                        individualConsumptionMap[activeMember] = (individualConsumptionMap[activeMember] ?: 0.0) + perPersonShare
+                    }
+                }
+            } else {
+                // Scenario 2: Deduct actual consumption from each person
+                for ((member, consumedAmt) in consumedByMap) {
+                    netBalanceMap[member] = (netBalanceMap[member] ?: 0.0) - consumedAmt
+                    individualConsumptionMap[member] = (individualConsumptionMap[member] ?: 0.0) + consumedAmt
+                }
+
+                // If paid total exceeds itemized consumption (e.g. shared tax, tip), split remainder among users who consumed
+                val unallocated = cardPaidTotal - cardConsumedTotal
+                if (unallocated > 0.01) {
+                    val sharedPool = if (consumedByMap.isNotEmpty()) consumedByMap.keys.toList() else validMembers
+                    val extraPerPerson = unallocated / sharedPool.size
+                    for (member in sharedPool) {
+                        netBalanceMap[member] = (netBalanceMap[member] ?: 0.0) - extraPerPerson
+                        individualConsumptionMap[member] = (individualConsumptionMap[member] ?: 0.0) + extraPerPerson
+                    }
                 }
             }
 
@@ -379,6 +524,10 @@ class UnequalSplitActivity : AppCompatActivity() {
             val paidObj = JSONObject()
             paidByMap.forEach { (k, v) -> paidObj.put(k, v) }
             cardObj.put("paidByMap", paidObj)
+
+            val consumedObj = JSONObject()
+            consumedByMap.forEach { (k, v) -> consumedObj.put(k, v) }
+            cardObj.put("consumedByMap", consumedObj)
 
             val partArray = JSONArray()
             activeMembers.forEach { partArray.put(it) }
@@ -404,16 +553,18 @@ class UnequalSplitActivity : AppCompatActivity() {
         val intent = Intent(this, SettlementActivity::class.java).apply {
             putExtra("IS_UNEQUAL_SPLIT", true)
             putExtra("TRIP_ID", tripSessionId)
-            putExtra("TRIP_TITLE", if (rawTitle.isEmpty()) "Unequal Activity Split" else rawTitle)
+            putExtra("TRIP_TITLE", if (rawTitle.isEmpty()) currentScenario.fullTitle else rawTitle)
             putExtra("TOTAL_AMOUNT", grandTotal)
             putExtra("MEMBER_COUNT", validMembers.size)
             putStringArrayListExtra("SETTLEMENTS", ArrayList(settlements))
             putStringArrayListExtra("INDIVIDUAL_BREAKDOWN", breakdownList)
             putStringArrayListExtra("MEMBERS", ArrayList(validMembers))
             putExtra("UNEQUAL_ITEMS_JSON", structuredJsonArray.toString())
+            putExtra("SCENARIO_ID", currentScenario.id)
         }
         startActivity(intent)
     }
+
     private fun solveDebts(netBalanceMap: Map<String, Double>): List<String> {
         val debtors = mutableListOf<Pair<String, Double>>()
         val creditors = mutableListOf<Pair<String, Double>>()
@@ -463,28 +614,48 @@ class UnequalSplitActivity : AppCompatActivity() {
             return false
         }
 
+        // 1. Completely clear existing in-memory state and UI before rebuilding
+        activityCardHolders.clear()
+        masterMemberList.clear()
+        layoutContainer.removeAllViews()
+
+        // 2. Set Session & Trip Title
         tripSessionId = inIntent.getLongExtra("TRIP_ID", System.currentTimeMillis())
         val savedTitle = inIntent.getStringExtra("TRIP_TITLE") ?: ""
         etTripTitle.setText(savedTitle)
 
+        // 3. Resolve the exact Scenario ID saved with this record
+        val scenarioId = inIntent.getIntExtra("SCENARIO_ID", 1)
+        val targetScenario = SplitScenario.values().firstOrNull { it.id == scenarioId } ?: SplitScenario.SCENARIO_1
+
+        // Explicitly set the target scenario on the variable and dropdown label
+        currentScenario = targetScenario
+        btnScenario.text = targetScenario.shortLabel
+
+        // 4. Restore Member Roster
         val savedMembers = inIntent.getStringArrayListExtra("MEMBERS") ?: arrayListOf()
-        masterMemberList.clear()
         masterMemberList.addAll(savedMembers)
 
         val rawJson = inIntent.getStringExtra("UNEQUAL_ITEMS_JSON") ?: ""
         if (rawJson.isNotEmpty()) {
             try {
                 val array = JSONArray(rawJson)
-                activityCardHolders.clear()
-                layoutContainer.removeAllViews()
 
-                // Fallback to extract member names from JSON if MEMBERS extra wasn't supplied
+                // Fallback: extract member names from JSON if MEMBERS extra wasn't supplied
                 if (masterMemberList.isEmpty()) {
                     for (i in 0 until array.length()) {
                         val obj = array.getJSONObject(i)
                         if (obj.has("paidByMap")) {
                             val pObj = obj.getJSONObject("paidByMap")
                             val keys = pObj.keys()
+                            while (keys.hasNext()) {
+                                val k = keys.next()
+                                if (!masterMemberList.contains(k)) masterMemberList.add(k)
+                            }
+                        }
+                        if (obj.has("consumedByMap")) {
+                            val cObj = obj.getJSONObject("consumedByMap")
+                            val keys = cObj.keys()
                             while (keys.hasNext()) {
                                 val k = keys.next()
                                 if (!masterMemberList.contains(k)) masterMemberList.add(k)
@@ -500,11 +671,12 @@ class UnequalSplitActivity : AppCompatActivity() {
                     }
                 }
 
-                // Reconstruct each activity card
+                // 5. Reconstruct each activity card
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
                     val title = obj.optString("title", "Expense Activity ${i + 1}")
                     val paidMap = mutableMapOf<String, Double>()
+                    val consumedMap = mutableMapOf<String, Double>()
 
                     if (obj.has("paidByMap")) {
                         val pObj = obj.getJSONObject("paidByMap")
@@ -512,6 +684,15 @@ class UnequalSplitActivity : AppCompatActivity() {
                         while (keys.hasNext()) {
                             val k = keys.next()
                             paidMap[k] = pObj.getDouble(k)
+                        }
+                    }
+
+                    if (obj.has("consumedByMap")) {
+                        val cObj = obj.getJSONObject("consumedByMap")
+                        val keys = cObj.keys()
+                        while (keys.hasNext()) {
+                            val k = keys.next()
+                            consumedMap[k] = cObj.getDouble(k)
                         }
                     }
 
@@ -523,6 +704,8 @@ class UnequalSplitActivity : AppCompatActivity() {
 
                     val cardView = LayoutInflater.from(this).inflate(R.layout.item_activity_table_card, layoutContainer, false)
                     val etTitle = cardView.findViewById<EditText>(R.id.etActivityTitle)
+                    val tvHeaderActive = cardView.findViewById<TextView>(R.id.tvHeaderActive)
+                    val tvHeaderConsumed = cardView.findViewById<TextView>(R.id.tvHeaderConsumed)
                     val rowsContainer = cardView.findViewById<LinearLayout>(R.id.layoutPersonRowsContainer)
                     val tvEmptyHint = cardView.findViewById<TextView>(R.id.tvEmptyPersonHint)
                     val btnAddPerson = cardView.findViewById<Button>(R.id.btnAddPersonRow)
@@ -531,15 +714,35 @@ class UnequalSplitActivity : AppCompatActivity() {
                     val tvTotal = cardView.findViewById<TextView>(R.id.tvActivityCardTotal)
 
                     etTitle.setText(title)
-                    val cardHolder = ActivityCardHolder(cardView, etTitle, rowsContainer, tvEmptyHint, tvSummary, tvTotal)
+                    val cardHolder = ActivityCardHolder(
+                        cardView = cardView,
+                        etTitle = etTitle,
+                        tvHeaderActive = tvHeaderActive,
+                        tvHeaderConsumed = tvHeaderConsumed,
+                        rowsContainer = rowsContainer,
+                        tvEmptyHint = tvEmptyHint,
+                        tvSummary = tvSummary,
+                        tvTotal = tvTotal
+                    )
 
+                    // Inflate rows with restored values
                     for (m in masterMemberList) {
                         val isAct = if (activeList.isEmpty()) true else activeList.contains(m)
                         val pAmt = paidMap[m] ?: 0.0
-                        addMemberRowToCard(cardHolder, m, pAmt, isAct)
+                        val cAmt = consumedMap[m] ?: 0.0
+                        addMemberRowToCard(
+                            cardHolder = cardHolder,
+                            memberName = m,
+                            initialPaid = pAmt,
+                            initialConsumed = cAmt,
+                            initialActive = isAct
+                        )
                     }
 
-                    btnAddPerson.setOnClickListener { addNewMemberGlobally() }
+                    // Enforce header and row visibility after all rows are populated
+                    applyScenarioVisibilityToCard(cardHolder)
+
+                    btnAddPerson.setOnClickListener { addNewMemberGlobally(originCard = cardHolder) }
                     btnDeleteCard.setOnClickListener {
                         if (activityCardHolders.size <= 1) {
                             showSingleToast("At least one expense activity is required!")
@@ -556,7 +759,7 @@ class UnequalSplitActivity : AppCompatActivity() {
                 }
 
                 updateGrandTotal()
-                showSingleToast("Trip loaded for editing")
+                showSingleToast("Loaded ${targetScenario.fullTitle}")
                 return true
             } catch (e: Exception) {
                 e.printStackTrace()

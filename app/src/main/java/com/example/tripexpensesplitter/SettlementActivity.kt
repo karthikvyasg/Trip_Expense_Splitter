@@ -38,6 +38,7 @@ class SettlementActivity : AppCompatActivity() {
         totalAmount = intent.getDoubleExtra("TOTAL_AMOUNT", 0.0)
         memberCount = intent.getIntExtra("MEMBER_COUNT", 1)
         isUnequalSplit = intent.getBooleanExtra("IS_UNEQUAL_SPLIT", false)
+        val scenarioId = intent.getIntExtra("SCENARIO_ID", 1)
         settlements = intent.getStringArrayListExtra("SETTLEMENTS") ?: arrayListOf()
         individualBreakdown = intent.getStringArrayListExtra("INDIVIDUAL_BREAKDOWN") ?: arrayListOf()
         val unequalItemsJson = intent.getStringExtra("UNEQUAL_ITEMS_JSON") ?: ""
@@ -48,7 +49,7 @@ class SettlementActivity : AppCompatActivity() {
 
         val currentDate = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date())
 
-        // Save trip with full unequal metadata for reloading
+        // Save trip with full unequal metadata and persistent scenarioId
         val historyManager = TripHistoryManager(this)
         historyManager.saveTrip(
             TripHistoryItem(
@@ -62,7 +63,8 @@ class SettlementActivity : AppCompatActivity() {
                 mapKeys = keys,
                 mapValues = values,
                 isUnequal = isUnequalSplit,
-                unequalItemsJson = unequalItemsJson
+                unequalItemsJson = unequalItemsJson,
+                scenarioId = scenarioId
             )
         )
 

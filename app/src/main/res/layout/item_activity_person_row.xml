@@ -30,7 +30,7 @@
         android:textColor="@color/text_primary"
         android:textSize="13sp" />
 
-    <!-- Column 2: Active/Not Checkbox -->
+    <!-- Column 2 (Scenario 1): Active/Not Checkbox -->
     <CheckBox
         android:id="@+id/cbPersonActive"
         android:layout_width="48dp"
@@ -38,6 +38,21 @@
         android:gravity="center"
         android:checked="true"
         android:layout_marginStart="4dp" />
+
+    <!-- Column 2 (Scenario 2): Consumed / Used Amount EditText -->
+    <EditText
+        android:id="@+id/etPersonConsumed"
+        android:layout_width="72dp"
+        android:layout_height="36dp"
+        android:background="@drawable/bg_input"
+        android:hint="0"
+        android:gravity="end|center_vertical"
+        android:inputType="numberDecimal"
+        android:paddingHorizontal="8dp"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp"
+        android:layout_marginStart="4dp"
+        android:visibility="gone" />
 
     <!-- Column 3: Paid Amount EditText -->
     <EditText
