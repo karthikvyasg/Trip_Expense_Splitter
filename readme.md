@@ -6,11 +6,11 @@ Split group expenses offline. No sign-in, no permissions, no data sharing.
 ## Features
 - Equal split
 - Unequal split by who joined and who paid
-- Unequal split by Consumption
+- Unequal split by consumption
 - Multiple payers per expense
 - Toggle if the payee is active/inactive (involved or not in the expense)
 - Trip history with editing
-- Share summary (text based whatsapp or other) and CSV export
+- Share summary (text based Whatsapp or other) and CSV export
 
 ## Tech
 Kotlin, Android Studio. Works on Android 7.0 (API 24) and above.
@@ -23,18 +23,20 @@ Kotlin, Android Studio. Works on Android 7.0 (API 24) and above.
 
 ## About
 Built by G. Karthik Vyas, 3rd-year CSE student.
+
 Contact: karthikvyas@gmail.com
 
 ## Screenshots
 
-![Screenshot 1](1.jpeg)
-
-![Screenshot 2](2.jpeg)
-            
-![Screenshot 3](3.jpeg)
-
-![Screenshot 4](4.jpeg)
-
-![Screenshot 5](5.jpeg)
-
-![Screenshot 6](6.jpeg)  
+<table>
+  <tr>
+    <td><img src="1.jpeg" width="200" alt="Screenshot 1"></td>
+    <td><img src="2.jpeg" width="200" alt="Screenshot 2"></td>
+    <td><img src="3.jpeg" width="200" alt="Screenshot 3"></td>
+  </tr>
+  <tr>
+    <td><img src="4.jpeg" width="200" alt="Screenshot 4"></td>
+    <td><img src="5.jpeg" width="200" alt="Screenshot 5"></td>
+    <td><img src="6.jpeg" width="200" alt="Screenshot 6"></td>
+  </tr>
+</table>
